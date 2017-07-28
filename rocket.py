@@ -21,12 +21,14 @@ class Game:
 		self.rocket=Rocket(self.windowWidth/3,self.windowHeight-self.landingPad1.padImg.get_height(),30,2000,-1800)
 		self.freeze=False
 		self.reset = True
+		self.gameTimeElapsed=0.0
 		
 	def gameLoop(self):
 		exit=False
 		white=(255,255,255)
 		red=(255,0,0)
 		green=(0,255,0)
+		blue=(135,206,250)
 		yellow=(255,255,0)
 		while not exit:
 			elapsedTime=self.clock.tick(self.fps)/1000.0
@@ -41,9 +43,11 @@ class Game:
 					elif event.key == pygame.K_RETURN and self.freeze == False and self.rocket.crash == True:
 						self.rocket.crashReset()
 						self.reset=False
+						self.gameTimeElapsed=0.0
 					elif event.key == pygame.K_RETURN and self.freeze == False and self.rocket.landed == True:
 						self.rocket.landReset()
 						self.reset=False
+						self.gameTimeElapsed=0.0
 					elif event.key == pygame.K_r:
 						self.rocket.changeRocket()
 					elif event.key == pygame.K_LEFT and self.freeze == False and self.rocket.landed == False and self.rocket.crash == False:
@@ -83,12 +87,26 @@ class Game:
 			self.landingPad1.draw(self.gameSurface)
 			self.landingPad2.draw(self.gameSurface)
 			
+			
+			if self.rocket.landed == False and self.rocket.crash == False and self.reset == False:
+				self.gameTimeElapsed = self.gameTimeElapsed + elapsedTime
+			
+			
+			timeMessage = str('Time Elapsed: ' + str(int(self.gameTimeElapsed)) + ' sec')
+			self.writeText(timeMessage, yellow, 25, self.windowWidth - 200, 60)
+			
 			if self.rocket.landed:
-				self.writeMessage('Nice landing! Press Enter to reset or Q to quit',green, 25)
+				self.writeMessage('Nice landing!',green, 30, (self.windowHeight/2))
+				self.writeMessage('Press Enter to play again or Q to quit',green, 25, (self.windowHeight/2)+ 40)
+				
 			elif self.rocket.crash:
-				self.writeMessage('You Crashed! Press Enter to reset or Q to quit',red, 25)
+				self.writeMessage('You Crashed! Press Enter to play again or Q to quit',red, 25, (self.windowHeight/2))
 			elif self.reset:
-				self.writeMessage('Controls: SPACE to fire rocket, Left/Right Keys to move side-ways', yellow, 20)
+				self.writeMessage('Welcome to Rocket!', yellow, 40, (self.windowHeight/2)-90)
+				self.writeMessage('Your mission:', blue, 30, (self.windowHeight/2))
+				self.writeMessage('Launch the rocket and land safely on the other landing pad', blue, 20, (self.windowHeight/2)+30)
+				self.writeMessage('You must land gently to avoid crashing!', blue, 20, (self.windowHeight/2)+50)
+				self.writeMessage('Use <SPACE> to fire rocket, Left/Right Keys to move side-ways', white, 20, (self.windowHeight/2)+100)
 			
 			pygame.display.update()
 			
@@ -101,11 +119,18 @@ class Game:
 
 
 		
-	def writeMessage(self,message,color, size):
+	def writeMessage(self,message,color, size,y):
 		largeFont = pygame.font.SysFont('couriernew',size, True)
 		textSurface = largeFont.render(message, True, color)
 		textRect = textSurface.get_rect()
-		textRect.center = ((self.windowWidth/2),(self.windowHeight/2))
+		textRect.center = ((self.windowWidth/2),y)
+		self.gameSurface.blit(textSurface,textRect)
+	
+	def writeText(self,string,color,size,x,y):
+		font = pygame.font.SysFont('couriernew',size, True)
+		textSurface = font.render(string, True, color)
+		textRect = textSurface.get_rect()
+		textRect.center = (x,y)
 		self.gameSurface.blit(textSurface,textRect)
 		
 
