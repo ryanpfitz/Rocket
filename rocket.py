@@ -7,14 +7,21 @@ class Game:
 		self.windowWidth=width
 		self.windowHeight=height
 		self.fps=fps
-		self.rocket=Rocket(self.windowWidth/2,self.windowHeight-40,30,2000,-1800)
-		self.space=Space()
-		self.freeze=False
 		self.gameSurface = pygame.display.set_mode((width,height))
 		self.clock = pygame.time.Clock()
-		self.reset = True
-		print (pygame.font.get_fonts())
 
+
+		
+	def gameInit(self):
+		self.space=Space()
+		self.landingPad1=LandingPad()
+		self.landingPad1.set_pos(self.windowWidth/3,self.windowHeight-self.landingPad1.padImg.get_height())
+		self.landingPad2=LandingPad()
+		self.landingPad2.set_pos((self.windowWidth/3)*2,self.windowHeight-self.landingPad1.padImg.get_height())
+		self.rocket=Rocket(self.windowWidth/3,self.windowHeight-self.landingPad1.padImg.get_height(),30,2000,-1800)
+		self.freeze=False
+		self.reset = True
+		
 	def gameLoop(self):
 		exit=False
 		white=(255,255,255)
@@ -37,6 +44,8 @@ class Game:
 					elif event.key == pygame.K_RETURN and self.freeze == False and self.rocket.landed == True:
 						self.rocket.landReset()
 						self.reset=False
+					elif event.key == pygame.K_r:
+						self.rocket.changeRocket()
 					elif event.key == pygame.K_LEFT and self.freeze == False and self.rocket.landed == False and self.rocket.crash == False:
 						self.rocket.thrustLeft()
 						self.reset=False
@@ -61,9 +70,18 @@ class Game:
 			if self.freeze == False and self.rocket.crash == False and self.rocket.landed == False:
 				self.rocket.update(elapsedTime)
 			
+			
+			if self.rocket.current_y_pos > self.landingPad2.y_pos + 2 and self.rocket.current_y_velocity < 0:
+				if self.rocket.current_y_velocity > -60 and abs(self.rocket.current_x_pos - self.landingPad2.x_pos) < 80:
+					self.rocket.landed = True
+				else:
+					self.rocket.crash = True
+			
 			self.clearWindow()
 			self.space.draw(self.gameSurface)
 			self.rocket.draw(self.gameSurface)
+			self.landingPad1.draw(self.gameSurface)
+			self.landingPad2.draw(self.gameSurface)
 			
 			if self.rocket.landed:
 				self.writeMessage('Nice landing! Press Enter to reset or Q to quit',green, 25)
@@ -96,16 +114,22 @@ class Space:
 	def __init__ (self):
 		self.starsImg = pygame.image.load('stars.png')
 		self.moonImg = pygame.image.load('moon.png')
+		self.asteroidImg = pygame.image.load('asteroid1.png')
 		
 	def draw (self,surface):
 		surface.blit(self.moonImg,(surface.get_width()/2-self.moonImg.get_width()/2,surface.get_height()-self.moonImg.get_height()))
 		surface.blit(self.starsImg,(0,0))
+		surface.blit(self.asteroidImg,(100,100))
 		
 class Rocket:
 
 	def __init__(self,x_init_pos,y_init_pos,mass,rocketforce,gravityforce):
-		self.rocketImg = pygame.image.load('rocket.png')
-		self.crashed_rocketImg = pygame.image.load('crashedrocket.png')
+		self.rocketImg = []
+		self.rocketImg.append(pygame.image.load('rocket1.png'))
+		self.rocketImg.append(pygame.image.load('rocket2.png'))
+		self.rocketImg.append(pygame.image.load('rocket3.png'))
+		self.rocketImg.append(pygame.image.load('rocket4.png'))
+		self.rocketIndex=0
 		self.fireImg = []
 		self.fireImg.append(pygame.image.load('flame1.png'))
 		self.fireImg.append(pygame.image.load('flame2.png'))
@@ -143,6 +167,11 @@ class Rocket:
 		self.current_x_pos = self.x_init_pos
 		self.current_x_velocity =0
 		self.current_x_accel = 0
+		
+	def changeRocket(self):
+		self.rocketIndex = self.rocketIndex + 1
+		if self.rocketIndex > 3:
+			self.rocketIndex=0
 		
 	def landReset(self):
 		self.landed=False
@@ -185,16 +214,7 @@ class Rocket:
 		
 		if self.current_y_velocity > self.max_y_velocity:
 			self.current_y_velocity = self.max_y_velocity
-	
-		if self.y_init_pos - self.current_y_pos < 5 and self.current_y_velocity < 0:	
-			if self.current_y_velocity > -60  and abs(self.current_x_pos - self.x_init_pos) < 80:
-				self.landed = True
-				self.current_y_pos = self.y_init_pos
-			else:
-				self.crash = True
-		
-		
-			
+				
 		thrustForce = 2000
 
 		if self.leftThrust == False and self.rightThrust == False:
@@ -215,6 +235,12 @@ class Rocket:
 			
 		if self.current_x_velocity < -60:
 			self.current_x_velocity = -60
+			
+		if self.current_x_pos > 800 + self.rocketImg[self.rocketIndex].get_width()/2:
+			self.current_x_pos = -1 * self.rocketImg[self.rocketIndex].get_width()
+			
+		if self.current_x_pos < -1 * self.rocketImg[self.rocketIndex].get_width():
+			self.current_x_pos = 800
 		
 		self.flameCount = self.flameCount+1
 		if self.flameCount==3:
@@ -227,24 +253,41 @@ class Rocket:
 		
 		
 	def draw (self,surface):
-		x_draw_pos = self.current_x_pos-self.rocketImg.get_width()/2
-		y_draw_pos = self.current_y_pos-self.rocketImg.get_height()
-		if self.crash:
-			surface.blit(self.crashed_rocketImg,(x_draw_pos,y_draw_pos))
-		else:
-			surface.blit(self.rocketImg,(x_draw_pos,y_draw_pos))
+		x_draw_pos = self.current_x_pos-self.rocketImg[self.rocketIndex].get_width()/2
+		y_draw_pos = self.current_y_pos-self.rocketImg[self.rocketIndex].get_height()
+
+		surface.blit(self.rocketImg[self.rocketIndex],(x_draw_pos,y_draw_pos))
 		
 		if self.fire:
-			surface.blit(self.fireImg[self.flameCount],(x_draw_pos+self.rocketImg.get_width()/2-self.fireImg[self.flameCount].get_width()/2,y_draw_pos+self.rocketImg.get_height()))
+			surface.blit(self.fireImg[self.flameCount],(x_draw_pos+self.rocketImg[self.rocketIndex].get_width()/2-self.fireImg[self.flameCount].get_width()/2,y_draw_pos+self.rocketImg[self.rocketIndex].get_height()))
 			
 		if self.rightThrust:
 			surface.blit(self.leftThrustImg[self.thrustCount],(x_draw_pos-self.leftThrustImg[self.thrustCount].get_width()+11,y_draw_pos+30))
 			
 		if self.leftThrust:
-			surface.blit(self.rightThrustImg[self.thrustCount],(x_draw_pos+self.rocketImg.get_width()-11,y_draw_pos+30))
+			surface.blit(self.rightThrustImg[self.thrustCount],(x_draw_pos+self.rocketImg[self.rocketIndex].get_width()-11,y_draw_pos+30))
+
+			
+			
+
+class LandingPad:
+	def __init__(self,x=0,y=0):
+		self.x_pos=x
+		self.y_pos=y
+		self.padImg=pygame.image.load('landingPad.png')
 		
+	def set_pos(self,x,y):
+		self.x_pos=x
+		self.y_pos=y
+		
+	def draw (self, surface):
+		x_draw_pos = self.x_pos-self.padImg.get_width()/2
+		y_draw_pos = self.y_pos
+		surface.blit(self.padImg,(x_draw_pos,y_draw_pos))
+			
 
 game=Game(800,800,60)
+game.gameInit()
 game.gameLoop()
 quit()
 
