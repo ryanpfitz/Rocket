@@ -22,13 +22,15 @@ class Game:
 		self.rocket=Rocket(self.windowWidth/3,self.windowHeight-self.landingPad1.padImg.get_height(),30,2000,-1800)
 		self.asteroidGroup = pygame.sprite.Group()
 		quadrant=self.windowWidth/8
-		self.asteroidGroup.add(Asteroid(quadrant,quadrant*3))
+		self.asteroidGroup.add(Asteroid(quadrant*1,quadrant*2))
 		self.asteroidGroup.add(Asteroid(quadrant*3,quadrant))
-		self.asteroidGroup.add(Asteroid(quadrant*2,quadrant*4))
-		self.asteroidGroup.add(Asteroid(quadrant*5,quadrant*3))
+		self.asteroidGroup.add(Asteroid(quadrant*3,quadrant*4))
+		self.asteroidGroup.add(Asteroid(quadrant*6,quadrant*2))
 		self.asteroidGroup.add(Asteroid(quadrant*7,quadrant))
-		self.asteroidGroup.add(Asteroid(quadrant*7,quadrant*5))
+		self.asteroidGroup.add(Asteroid(quadrant*7,quadrant*6))
 		self.asteroidGroup.add(Asteroid(quadrant*4,quadrant*6))
+		self.asteroidGroup.add(Asteroid(quadrant*1,quadrant*6))
+		self.asteroidGroup.add(Asteroid(quadrant*5,quadrant*4))
 		self.freeze=False
 		self.reset = True
 		self.gameTimeElapsed=0.0
@@ -104,8 +106,6 @@ class Game:
 			
 			if pygame.sprite.spritecollide(self.rocket,self.asteroidGroup,False,pygame.sprite.collide_mask):
 				self.rocket.crash=True
-				
-				#print('Asteroid Collision!')
 			
 			
 			if self.rocket.landed == False and self.rocket.crash == False and self.reset == False:
