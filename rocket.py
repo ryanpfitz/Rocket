@@ -16,10 +16,10 @@ class Game:
 	def gameInit(self):
 		self.space=Space()
 		self.landingPad1=LandingPad()
-		self.landingPad1.set_pos(self.windowWidth/3,self.windowHeight-self.landingPad1.padImg.get_height())
+		self.landingPad1.set_pos(self.windowWidth/3,self.windowHeight-(self.landingPad1.padImg.get_height()+50))
 		self.landingPad2=LandingPad()
-		self.landingPad2.set_pos((self.windowWidth/3)*2,self.windowHeight-self.landingPad1.padImg.get_height())
-		self.rocket=Rocket(self.windowWidth/3,self.windowHeight-self.landingPad1.padImg.get_height(),30,2000,-1800)
+		self.landingPad2.set_pos((self.windowWidth/3)*2,self.windowHeight-(self.landingPad1.padImg.get_height()+50))
+		self.rocket=Rocket(self.windowWidth/3,self.windowHeight-(self.landingPad1.padImg.get_height()+50),30,2000,-1800)
 		self.asteroidGroup = pygame.sprite.Group()
 		quadrant=self.windowWidth/8
 		self.asteroidGroup.add(Asteroid(quadrant*1,quadrant*2))
@@ -159,13 +159,13 @@ class Space:
 
 	def __init__ (self):
 		self.starsImg = pygame.image.load('stars.png')
-		self.moonImg = pygame.image.load('moon.png')
+		self.moonImg = pygame.image.load('moon1.png')
 		#self.asteroidImg = pygame.image.load('asteroid1.png')
 		
 	def draw (self,surface):
-		surface.blit(self.moonImg,(surface.get_width()/2-self.moonImg.get_width()/2,surface.get_height()-self.moonImg.get_height()))
 		surface.blit(self.starsImg,(0,0))
-		#surface.blit(self.asteroidImg,(100,100))
+		surface.blit(self.moonImg,(surface.get_width()/2-self.moonImg.get_width()/2,surface.get_height()-self.moonImg.get_height()))
+		
 		
 class Rocket(pygame.sprite.Sprite):
 
@@ -187,6 +187,11 @@ class Rocket(pygame.sprite.Sprite):
 		self.rightThrustImg = []
 		self.rightThrustImg.append(pygame.image.load('leftThrust1.png'))
 		self.rightThrustImg.append(pygame.image.load('leftThrust2.png'))
+		self.explodeImg = []
+		self.explodeImg.append(pygame.image.load('explode1.png'))
+		self.explodeImg.append(pygame.image.load('explode2.png'))
+		self.explodeImg.append(pygame.image.load('explode3.png'))
+		self.explodeIndex=0
 		self.current_x_pos = self.x_init_pos = x_init_pos
 		self.current_y_pos = self.y_init_pos = y_init_pos
 		self.current_y_velocity = 0
@@ -207,6 +212,7 @@ class Rocket(pygame.sprite.Sprite):
 		self.rightThrust=False
 		self.rect=self.rocketImg[self.rocketIndex].get_rect()
 		self.mask = pygame.mask.from_surface(self.rocketImg[self.rocketIndex])
+		self.skipFrame=False
 	
 	def crashReset(self):
 		self.crash=False
@@ -216,6 +222,8 @@ class Rocket(pygame.sprite.Sprite):
 		self.current_x_pos = self.x_init_pos
 		self.current_x_velocity =0
 		self.current_x_accel = 0
+		self.explodeIndex=0
+		self.skipFrame=False
 		
 	def changeRocket(self):
 		self.rocketIndex = self.rocketIndex + 1
@@ -315,19 +323,29 @@ class Rocket(pygame.sprite.Sprite):
 		self.rect.left=x_draw_pos
 		self.rect.right=x_draw_pos+self.rocketImg[self.rocketIndex].get_width()
 		self.rect.bottom=y_draw_pos+self.rocketImg[self.rocketIndex].get_height()
+
+		if not self.crash:
+			surface.blit(self.rocketImg[self.rocketIndex],(x_draw_pos,y_draw_pos))
+		else:
+			if self.explodeIndex < 30:
+				if self.explodeIndex < 9:
+					surface.blit(self.rocketImg[self.rocketIndex],(x_draw_pos,y_draw_pos))
+				surface.blit(self.explodeImg[self.explodeIndex % 3],(x_draw_pos-20,y_draw_pos))
+				if self.skipFrame==False:
+					self.explodeIndex = self.explodeIndex + 1
+					self.skipFrame=True
+				else:
+					self.skipFrame=False
 		
-		surface.blit(self.rocketImg[self.rocketIndex],(x_draw_pos,y_draw_pos))
-		
-		if self.fire:
+		if self.fire and self.crash == False:
 			surface.blit(self.fireImg[self.flameCount],(x_draw_pos+self.rocketImg[self.rocketIndex].get_width()/2-self.fireImg[self.flameCount].get_width()/2-1,y_draw_pos+self.rocketImg[self.rocketIndex].get_height()))
 			
-		if self.rightThrust:
+		if self.rightThrust and self.crash == False:
 			surface.blit(self.leftThrustImg[self.thrustCount],(x_draw_pos-self.leftThrustImg[self.thrustCount].get_width()+11,y_draw_pos+30))
 			
-		if self.leftThrust:
+		if self.leftThrust and self.crash == False:
 			surface.blit(self.rightThrustImg[self.thrustCount],(x_draw_pos+self.rocketImg[self.rocketIndex].get_width()-11,y_draw_pos+30))
-
-			
+	
 			
 
 class Asteroid(pygame.sprite.Sprite):
@@ -361,7 +379,7 @@ class LandingPad:
 	def __init__(self,x=0,y=0):
 		self.x_pos=x
 		self.y_pos=y
-		self.padImg=pygame.image.load('landingPad.png')
+		self.padImg=pygame.image.load('landingPad1.png')
 		
 	def set_pos(self,x,y):
 		self.x_pos=x
