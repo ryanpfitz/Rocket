@@ -88,17 +88,17 @@ class Game:
                 self.gameTimeElapsed = self.gameTimeElapsed + elapsedTime
 
                 if pygame.sprite.spritecollide(self.rocket, self.asteroidGroup, False, pygame.sprite.collide_mask):
-                    print('crashing rocket due to asteroid')
+                    #print('crashing rocket due to asteroid')
                     self.rocket.crashIt()
                 elif pygame.sprite.spritecollide(self.rocket, self.landingGroup, False, pygame.sprite.collide_mask):
                     #print("Rocket touching space-station")
                     if self.rocket.getBaseRect().colliderect(self.spaceStation.getLandingAreaRect()):
-                        print('rectangles overlapping')
+                        #print('rectangles overlapping')
                         if self.rocket.current_y_velocity < 0:
                             if self.rocket.current_y_velocity > -60:
                                 self.rocket.landed = True
                     else:
-                        print('crashing rocket due to space-station')
+                        #print('crashing rocket due to space-station')
                         self.rocket.crashIt()
 
             self.clearWindow()
@@ -177,6 +177,7 @@ class Rocket(pygame.sprite.Sprite):
         self.rocketImg.append(pygame.image.load('rocket2.png'))
         self.rocketImg.append(pygame.image.load('rocket3.png'))
         self.rocketImg.append(pygame.image.load('rocket4.png'))
+        self.rocketImg.append(pygame.image.load('rocket5.png'))
         self.rocketIndex = 0
         self.fireImg = []
         self.fireImg.append(pygame.image.load('flame1.png'))
@@ -234,7 +235,7 @@ class Rocket(pygame.sprite.Sprite):
 
     def changeRocket(self):
         self.rocketIndex = self.rocketIndex + 1
-        if self.rocketIndex > 3:
+        if self.rocketIndex > 4:
             self.rocketIndex = 0
         self.rect = self.rocketImg[self.rocketIndex].get_rect()
         self.mask = pygame.mask.from_surface(self.rocketImg[self.rocketIndex])
