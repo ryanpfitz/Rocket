@@ -1,7 +1,10 @@
 import pygame
 
 
-# from math import round
+
+WIDTH=800
+HEIGHT=800
+
 
 class Game:
     def __init__(self, width, height, fps):
@@ -16,24 +19,26 @@ class Game:
     def gameinit(self):
         quadrant = int(self.windowWidth / 8)
         self.space = Space()
-        self.landingPad1 = LandingPad()
-        self.landingPad1.set_pos(self.windowWidth / 3, self.windowHeight - (self.landingPad1.padImg.get_height() + 50))
-        self.landingPad2 = LandingPad()
-        self.rocket = Rocket(self.windowWidth / 3, self.windowHeight - (self.landingPad1.padImg.get_height() + 50), 30,
+        self.moon = Moon(self.windowWidth,self.windowHeight)
+        self.landingPad1 = LandingPad(self.windowWidth / 3, self.windowHeight - 50)
+        self.rocket = Rocket(self.windowWidth / 3, self.landingPad1.rect.top, 30,
                              2000, -1800)
-        self.asteroidGroup = pygame.sprite.Group()
-        self.asteroidGroup.add(Asteroid(quadrant * 1, quadrant * 2))
-        self.asteroidGroup.add(Asteroid(quadrant * 2, quadrant * 1))
-        self.asteroidGroup.add(Asteroid(quadrant * 4, quadrant * 3))
-        self.asteroidGroup.add(Asteroid(quadrant * 7, quadrant * 1))
-        self.asteroidGroup.add(Asteroid(quadrant * 7, quadrant * 6))
-        self.asteroidGroup.add(Asteroid(quadrant * 4, quadrant * 6))
-        self.asteroidGroup.add(Asteroid(quadrant * 1, quadrant * 6))
+        self.obstacleGroup = pygame.sprite.Group()
+        self.obstacleGroup.add(Asteroid(quadrant * 1, quadrant * 2))
+        self.obstacleGroup.add(Asteroid(quadrant * 2, quadrant * 1))
+        self.obstacleGroup.add(Asteroid(quadrant * 4, quadrant * 3))
+        self.obstacleGroup.add(Asteroid(quadrant * 7, quadrant * 1))
+        self.obstacleGroup.add(Asteroid(quadrant * 7, quadrant * 6))
+        self.obstacleGroup.add(Asteroid(quadrant * 4, quadrant * 6))
+        self.obstacleGroup.add(Asteroid(quadrant * 1, quadrant * 6))
+        self.obstacleGroup.add((self.moon))
         self.spaceStation = Station(quadrant * 6, quadrant * 4)
-        self.landingGroup.add(self.spaceStation)
+        self.obstacleGroup.add(self.spaceStation)
+        self.obstacleGroup.add(self.landingPad1)
         self.freeze = False
         self.reset = True
         self.gameTimeElapsed = 0.0
+        self.rocketonstation = False
 
     def gameLoop(self):
         exit = False
@@ -49,7 +54,7 @@ class Game:
                     exit = True
 
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE and self.freeze == False and self.rocket.isCrashed() == False and self.rocket.landed == False:
+                    if event.key == pygame.K_SPACE and self.freeze == False and self.rocket.isCrashed() == False and self.rocketonstation == False:
                         self.rocket.startFire()
                         self.reset = False
                     elif event.key == pygame.K_RETURN and self.freeze == False and self.rocket.isCrashed() == True:
@@ -83,40 +88,53 @@ class Game:
                     elif event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
                         self.rocket.noThrust()
 
-            if self.freeze == False and self.reset == False and self.rocket.isCrashed() == False and self.rocket.landed == False:
+            if self.freeze == False and self.reset == False and self.rocket.isCrashed() == False and self.rocketonstation == False:
                 self.rocket.update(elapsedTime)
                 self.gameTimeElapsed = self.gameTimeElapsed + elapsedTime
 
-                if pygame.sprite.spritecollide(self.rocket, self.asteroidGroup, False, pygame.sprite.collide_mask):
-                    #print('crashing rocket due to asteroid')
-                    self.rocket.crashIt()
-                elif pygame.sprite.spritecollide(self.rocket, self.landingGroup, False, pygame.sprite.collide_mask):
-                    #print("Rocket touching space-station")
-                    if self.rocket.getBaseRect().colliderect(self.spaceStation.getLandingAreaRect()):
-                        #print('rectangles overlapping')
-                        if self.rocket.current_y_velocity < 0:
-                            if self.rocket.current_y_velocity > -60:
-                                self.rocket.landed = True
-                    else:
-                        #print('crashing rocket due to space-station')
-                        self.rocket.crashIt()
+                obstacleHits = pygame.sprite.spritecollide(self.rocket, self.obstacleGroup, False, pygame.sprite.collide_mask)
+
+
+                if obstacleHits:
+                    for obstacle in obstacleHits:
+                        if isinstance(obstacle,Asteroid):
+                            self.rocket.crashIt()
+                        elif isinstance(obstacle,Moon) and not self.rocket.landed:
+                            if self.rocket.current_y_velocity < 0:
+                                if self.rocket.current_x_pos < self.landingPad1.rect.left or self.rocket.current_x_pos > self.landingPad1.rect.right:
+                                    self.rocket.crashIt()
+                        elif isinstance(obstacle,LandingPad):
+                            if self.rocket.current_y_velocity > -60 and self.rocket.current_y_velocity <= 0:
+                                    self.rocket.landed=True
+                                    self.rocket.current_y_accel = 0
+                                    self.rocket.current_y_velocity = 0
+                                    self.rocket.current_x_velocity = 0
+                                    self.rocket.current_x_accel = 0
+                        elif isinstance(obstacle,Station):
+                            if self.rocket.getBaseRect().colliderect(self.spaceStation.getLandingAreaRect()):
+                                if self.rocket.current_y_velocity < 0:
+                                    if self.rocket.current_y_velocity > -60:
+                                        self.rocket.landed = True
+                                        self.rocketonstation = True
+                            else:
+                                self.rocket.crashIt()
+
+
 
             self.clearWindow()
             self.space.draw(self.gameSurface)
-            self.landingPad1.draw(self.gameSurface)
+            #self.landingPad1.draw(self.gameSurface)
 
-            for landingArea in self.landingGroup:
-                landingArea.draw(self.gameSurface)
+            for obstacle in self.obstacleGroup:
+                obstacle.draw(self.gameSurface)
 
-            for asteroid in self.asteroidGroup:
-                asteroid.draw(self.gameSurface)
 
             timeMessage = str('Time Elapsed: ' + str(int(self.gameTimeElapsed)) + ' sec')
             self.writeText(timeMessage, yellow, 25, self.windowWidth - 200, 60)
 
             self.rocket.draw(self.gameSurface)
 
-            if self.rocket.landed:
+            if self.rocket.landed and self.rocketonstation:
                 self.writeMessage('Nice landing!', green, 30, (self.windowHeight / 2))
                 self.writeMessage('Press Enter to play again or Q to quit', green, 25, (self.windowHeight / 2) + 40)
 
@@ -156,17 +174,25 @@ class Game:
         self.gameSurface.blit(textSurface, textRect)
 
 
+class Moon(pygame.sprite.Sprite):
+    def __init__(self,window_x,window_y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load('moon1.png')
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.center=(window_x/2,window_y-self.image.get_height()/2)
+
+    def draw (self, surface):
+        surface.blit(self.image, (
+        surface.get_width() / 2 - self.image.get_width() / 2, surface.get_height() - self.image.get_height()))
+
+
 class Space:
     def __init__(self):
         self.starsImg = pygame.image.load('stars.png')
-        self.moonImg = pygame.image.load('moon1.png')
-
-    # self.asteroidImg = pygame.image.load('asteroid1.png')
 
     def draw(self, surface):
         surface.blit(self.starsImg, (0, 0))
-        surface.blit(self.moonImg, (
-        surface.get_width() / 2 - self.moonImg.get_width() / 2, surface.get_height() - self.moonImg.get_height()))
 
 
 class Rocket(pygame.sprite.Sprite):
@@ -261,6 +287,8 @@ class Rocket(pygame.sprite.Sprite):
 
     def startFire(self):
         self.fire = True
+        if self.landed:
+            self.landed=False
 
     def stopFire(self):
         self.fire = False
@@ -398,20 +426,20 @@ class Asteroid(pygame.sprite.Sprite):
         surface.blit(self.asteroidImg, (x_draw_pos, y_draw_pos))
 
 
-class LandingPad:
+class LandingPad(pygame.sprite.Sprite):
     def __init__(self, x=0, y=0):
+        pygame.sprite.Sprite.__init__(self)
         self.x_pos = x
         self.y_pos = y
-        self.padImg = pygame.image.load('landingPad1.png')
-
-    def set_pos(self, x, y):
-        self.x_pos = x
-        self.y_pos = y
+        self.image = pygame.image.load('landingPad1.png')
+        self.rect = self.image.get_rect()
+        self.rect.left=x
+        self.rect.top=y
 
     def draw(self, surface):
-        x_draw_pos = self.x_pos - self.padImg.get_width() / 2
-        y_draw_pos = self.y_pos - self.padImg.get_height() / 2
-        surface.blit(self.padImg, (x_draw_pos, y_draw_pos))
+        x_draw_pos = self.x_pos - self.image.get_width() / 2
+        y_draw_pos = self.y_pos - self.image.get_height() / 2
+        surface.blit(self.image, (x_draw_pos, y_draw_pos))
 
 
 
@@ -444,7 +472,7 @@ class Station(pygame.sprite.Sprite):
         return landrect
 
 
-game = Game(800, 800, 60)
+game = Game(WIDTH, HEIGHT, 60)
 game.gameinit()
 game.gameLoop()
 quit()
