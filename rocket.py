@@ -36,11 +36,15 @@ class Game:
         self.obstacleGroup.add(self.spaceStation)
         self.obstacleGroup.add(self.landingPad1)
         self.alienGroup = pygame.sprite.Group()
-        self.alienGroup.add(Alien(quadrant*2,quadrant*1))
+        self.alienGroup.add(Alien(quadrant * 2, quadrant * 1))
+        self.alienGroup.add(Alien(quadrant * 5, quadrant * 5))
+        self.alienGroup.add(Alien(quadrant * 4, quadrant * 1))
+        self.alienGroup.add(Alien(quadrant * 7, quadrant * 2))
         self.freeze = False
         self.reset = True
         self.gameTimeElapsed = 0.0
         self.rocketonstation = False
+        self.alienCollected = 0
 
     def gameLoop(self):
         exit = False
@@ -61,10 +65,24 @@ class Game:
                         self.reset = False
                     elif event.key == pygame.K_RETURN and self.freeze == False and self.rocket.isCrashed() == True:
                         self.rocket.crashReset()
+                        self.alienCollected=0
+                        self.alienGroup.empty()
+                        quadrant = int(self.windowWidth / 8)
+                        self.alienGroup.add(Alien(quadrant * 2, quadrant * 1))
+                        self.alienGroup.add(Alien(quadrant * 5, quadrant * 5))
+                        self.alienGroup.add(Alien(quadrant * 4, quadrant * 1))
+                        self.alienGroup.add(Alien(quadrant * 7, quadrant * 2))
                         self.reset = True
                         self.gameTimeElapsed = 0.0
                     elif event.key == pygame.K_RETURN and self.freeze == False and self.rocketonstation == True:
                         self.rocket.landReset()
+                        self.alienCollected = 0
+                        self.alienGroup.empty()
+                        quadrant = int(self.windowWidth / 8)
+                        self.alienGroup.add(Alien(quadrant * 2, quadrant * 1))
+                        self.alienGroup.add(Alien(quadrant * 5, quadrant * 5))
+                        self.alienGroup.add(Alien(quadrant * 4, quadrant * 1))
+                        self.alienGroup.add(Alien(quadrant * 7, quadrant * 2))
                         self.reset = True
                         self.rocketonstation=False
                         self.gameTimeElapsed = 0.0
@@ -97,6 +115,9 @@ class Game:
 
                 obstacleHits = pygame.sprite.spritecollide(self.rocket, self.obstacleGroup, False, pygame.sprite.collide_mask)
                 alienHits = pygame.sprite.spritecollide(self.rocket, self.alienGroup,True,pygame.sprite.collide_mask)
+
+                if alienHits:
+                    self.alienCollected = self.alienCollected + len(alienHits)
 
 
                 if obstacleHits:
@@ -140,25 +161,30 @@ class Game:
             timeMessage = str('Time Elapsed: ' + str(int(self.gameTimeElapsed)) + ' sec')
             self.writeText(timeMessage, yellow, 25, self.windowWidth - 200, 60)
 
+            alienMessage = str('Aliens Collected: ' + str(self.alienCollected))
+            self.writeText(alienMessage, yellow, 25, self.windowWidth - 200, 90)
+
             self.rocket.draw(self.gameSurface)
 
             if self.rocket.landed and self.rocketonstation:
-                self.writeMessage('Nice landing!', green, 30, (self.windowHeight / 2))
-                self.writeMessage('Press Enter to play again or Q to quit', green, 25, (self.windowHeight / 2) + 40)
+                message = str('Nice Landing! You collected ') + str(self.alienCollected) + str(' aliens')
+                self.writeMessage(message, green, 30, (self.windowHeight / 2)-150)
+                self.writeMessage('Press Enter to play again or Q to quit', white, 25, (self.windowHeight / 2) + 40)
 
             elif self.rocket.isCrashed():
                 self.writeMessage('You Crashed! Press Enter to play again or Q to quit', red, 25,
                                   (self.windowHeight / 2))
             elif self.reset:
                 offset = (self.windowHeight / 2) - 270
-                self.writeMessage('Welcome to Rocket!', yellow, 40, offset)
+                self.writeMessage('Welcome to Rocket!', white, 40, offset)
                 self.writeMessage('Your mission:', green, 30, offset + 90)
                 self.writeMessage('Launch the rocket and land safely on the space-station landing pad', green, 20,
                                   offset + 120)
-                self.writeMessage('You must land gently to avoid crashing!', green, 20, offset + 140)
-                self.writeMessage('Watch out for the asteroids!', red, 20, offset + 180)
+                self.writeMessage('Collect some aliens along the way....', green, 20, offset+140)
+                self.writeMessage('You must land gently to avoid crashing!', red, 20, offset + 180)
+                self.writeMessage('Watch out for the asteroids!', red, 20, offset + 200)
                 self.writeMessage('Use <SPACE> to fire rocket, Left/Right Keys to move side-ways', white, 20,
-                                  offset + 200)
+                                  offset + 340)
 
             pygame.display.update()
 
@@ -415,6 +441,8 @@ class Alien(pygame.sprite.Sprite):
         self.y=y
         self.image = pygame.image.load('alien.png')
         self.rect = self.image.get_rect()
+        self.rect.top=y
+        self.rect.left=x
         self.mask = pygame.mask.from_surface(self.image)
 
     def draw(self, surface):
