@@ -25,16 +25,18 @@ class Game:
                              2000, -1800)
         self.obstacleGroup = pygame.sprite.Group()
         self.obstacleGroup.add(Asteroid(quadrant * 1, quadrant * 2))
-        self.obstacleGroup.add(Asteroid(quadrant * 2, quadrant * 1))
+        self.obstacleGroup.add(Asteroid(quadrant * 3, quadrant * 1))
         self.obstacleGroup.add(Asteroid(quadrant * 4, quadrant * 3))
         self.obstacleGroup.add(Asteroid(quadrant * 7, quadrant * 1))
         self.obstacleGroup.add(Asteroid(quadrant * 7, quadrant * 6))
-        self.obstacleGroup.add(Asteroid(quadrant * 4, quadrant * 6))
+        self.obstacleGroup.add(Asteroid(quadrant * 2, quadrant * 4))
         self.obstacleGroup.add(Asteroid(quadrant * 1, quadrant * 6))
         self.obstacleGroup.add((self.moon))
         self.spaceStation = Station(quadrant * 6, quadrant * 4)
         self.obstacleGroup.add(self.spaceStation)
         self.obstacleGroup.add(self.landingPad1)
+        self.alienGroup = pygame.sprite.Group()
+        self.alienGroup.add(Alien(quadrant*2,quadrant*1))
         self.freeze = False
         self.reset = True
         self.gameTimeElapsed = 0.0
@@ -61,9 +63,10 @@ class Game:
                         self.rocket.crashReset()
                         self.reset = True
                         self.gameTimeElapsed = 0.0
-                    elif event.key == pygame.K_RETURN and self.freeze == False and self.rocket.landed == True:
+                    elif event.key == pygame.K_RETURN and self.freeze == False and self.rocketonstation == True:
                         self.rocket.landReset()
                         self.reset = True
+                        self.rocketonstation=False
                         self.gameTimeElapsed = 0.0
                     elif event.key == pygame.K_r:
                         self.rocket.changeRocket()
@@ -93,6 +96,7 @@ class Game:
                 self.gameTimeElapsed = self.gameTimeElapsed + elapsedTime
 
                 obstacleHits = pygame.sprite.spritecollide(self.rocket, self.obstacleGroup, False, pygame.sprite.collide_mask)
+                alienHits = pygame.sprite.spritecollide(self.rocket, self.alienGroup,True,pygame.sprite.collide_mask)
 
 
                 if obstacleHits:
@@ -110,6 +114,8 @@ class Game:
                                     self.rocket.current_y_velocity = 0
                                     self.rocket.current_x_velocity = 0
                                     self.rocket.current_x_accel = 0
+                            elif self.rocket.current_y_velocity <=0:
+                                self.rocket.crashIt()
                         elif isinstance(obstacle,Station):
                             if self.rocket.getBaseRect().colliderect(self.spaceStation.getLandingAreaRect()):
                                 if self.rocket.current_y_velocity < 0:
@@ -123,10 +129,12 @@ class Game:
 
             self.clearWindow()
             self.space.draw(self.gameSurface)
-            #self.landingPad1.draw(self.gameSurface)
 
             for obstacle in self.obstacleGroup:
                 obstacle.draw(self.gameSurface)
+
+            for alien in self.alienGroup:
+                alien.draw(self.gameSurface)
 
 
             timeMessage = str('Time Elapsed: ' + str(int(self.gameTimeElapsed)) + ' sec')
@@ -287,7 +295,7 @@ class Rocket(pygame.sprite.Sprite):
 
     def startFire(self):
         self.fire = True
-        if self.landed:
+        if self.landed == True:
             self.landed=False
 
     def stopFire(self):
@@ -399,6 +407,18 @@ class Rocket(pygame.sprite.Sprite):
 
         return rect
 
+
+class Alien(pygame.sprite.Sprite):
+    def __init__(self, x=0,y=0):
+        pygame.sprite.Sprite.__init__(self)
+        self.x=x
+        self.y=y
+        self.image = pygame.image.load('alien.png')
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+
+    def draw(self, surface):
+        surface.blit(self.image,(self.x,self.y))
 
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, x=0, y=0):
